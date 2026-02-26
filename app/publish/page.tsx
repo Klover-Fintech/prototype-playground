@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
 import CodeMirror from "@uiw/react-codemirror";
 import { html as htmlLang } from "@codemirror/lang-html";
+import { Typography } from "@mui/material";
+import { Button, theme } from "@attain-sre/attain-design-system";
 
 const STARTER_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -178,7 +180,7 @@ const PreviewFrame = styled.iframe`
   background: #fff;
 `;
 
-const PublishButton = styled.button`
+const PublishButton = styled(Button)`
   padding: 12px 28px;
   font-size: 15px;
   font-weight: 500;
@@ -194,6 +196,31 @@ const PublishButton = styled.button`
   &:disabled {
     background: #ccc;
     cursor: not-allowed;
+  }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-direction: row-reverse;
+`;
+
+const CancelButton = styled(Button)`
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #555;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  &:hover {
+    background: #f5f5f5;
+    border-color: #999;
   }
 `;
 
@@ -253,27 +280,7 @@ const CheckboxRow = styled.label`
   }
 `;
 
-const UrlInput = styled.input`
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 14px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  outline: none;
-  &:focus {
-    border-color: #1a73e8;
-  }
-`;
-
-const UrlPreviewFrame = styled.iframe`
-  width: 100%;
-  height: 400px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background: #fff;
-`;
-
-type TabId = "editor" | "upload" | "url";
+type TabId = "editor" | "upload";
 
 function slugify(name: string): string {
   return name
@@ -285,6 +292,7 @@ function slugify(name: string): string {
 
 export default function PublishPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const editPerson = searchParams.get("person");
   const editSlug = searchParams.get("slug");
@@ -300,7 +308,6 @@ export default function PublishPage() {
   const [result, setResult] = useState<{ url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [collaborative, setCollaborative] = useState(true);
-  const [externalUrl, setExternalUrl] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -322,10 +329,6 @@ export default function PublishPage() {
       .then((data) => {
         setHtmlContent(data.html || "");
         setCollaborative(!!data.collaborative);
-        if (data.externalUrl) {
-          setExternalUrl(data.externalUrl);
-          setActiveTab("url");
-        }
       })
       .catch(() => {
         setError("Could not load the prototype for editing.");
@@ -361,24 +364,17 @@ export default function PublishPage() {
   );
 
   const handlePublish = async () => {
-    if (!slug) return;
-    if (activeTab === "url" && !externalUrl.trim()) return;
-    if (activeTab !== "url" && !htmlContent.trim()) return;
+    if (!slug || !htmlContent.trim()) return;
 
     setPublishing(true);
     setError(null);
     setResult(null);
 
     try {
-      const payload =
-        activeTab === "url"
-          ? { name: slug, externalUrl: externalUrl.trim(), collaborative }
-          : { name: slug, html: htmlContent, collaborative };
-
       const res = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name: slug, html: htmlContent, collaborative }),
       });
 
       const data = await res.json();
@@ -402,12 +398,11 @@ export default function PublishPage() {
 
   return (
     <Page>
-      <TopBar>
-        <BackLink href="/">&#8592; Home</BackLink>
-        <PageTitle>{isEditMode ? "Edit Prototype" : "New Prototype"}</PageTitle>
-      </TopBar>
-
       <Content>
+        <Typography variant="h4" style={{ marginBottom: theme.spacing.lg }}>
+          {isEditMode ? "Edit Prototype" : "Create Prototype"}
+        </Typography>
+
         {result && (
           <SuccessBanner>
             <SuccessText>
@@ -464,12 +459,6 @@ export default function PublishPage() {
               >
                 HTML Upload
               </Tab>
-              <Tab
-                $active={activeTab === "url"}
-                onClick={() => setActiveTab("url")}
-              >
-                External URL
-              </Tab>
               <CheckboxRow>
                 <input
                   type="checkbox"
@@ -490,17 +479,6 @@ export default function PublishPage() {
                   onChange={(value) => setHtmlContent(value)}
                   theme="light"
                 />
-              )}
-
-              {activeTab === "url" && (
-                <div style={{ padding: 20 }}>
-                  <UrlInput
-                    type="url"
-                    placeholder="https://example.com/my-dashboard"
-                    value={externalUrl}
-                    onChange={(e) => setExternalUrl(e.target.value)}
-                  />
-                </div>
               )}
 
               {activeTab === "upload" && (
@@ -537,45 +515,27 @@ export default function PublishPage() {
 
             <PreviewSection>
               <PreviewLabel>Live Preview</PreviewLabel>
-              {activeTab === "url" ? (
-                externalUrl.trim() ? (
-                  <UrlPreviewFrame src={externalUrl.trim()} />
-                ) : (
-                  <div
-                    style={{
-                      padding: 48,
-                      textAlign: "center",
-                      color: "#999",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 8,
-                    }}
-                  >
-                    Enter a URL above to preview
-                  </div>
-                )
-              ) : (
-                <PreviewFrame srcDoc={previewSrcDoc} sandbox="allow-scripts" />
-              )}
+              <PreviewFrame srcDoc={previewSrcDoc} sandbox="allow-scripts" />
             </PreviewSection>
 
-            <PublishButton
-              onClick={handlePublish}
-              disabled={
-                !slug ||
-                (activeTab === "url"
-                  ? !externalUrl.trim()
-                  : !htmlContent.trim()) ||
-                publishing
-              }
-            >
-              {publishing
-                ? isEditMode
-                  ? "Updating..."
-                  : "Publishing..."
-                : isEditMode
-                  ? "Update Prototype"
-                  : "Publish Prototype"}
-            </PublishButton>
+            <ButtonRow>
+              <PublishButton
+                onClick={handlePublish}
+                disabled={!slug || !htmlContent.trim() || publishing}
+                variant="contained"
+              >
+                {publishing
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Publishing..."
+                  : isEditMode
+                    ? "Update Prototype"
+                    : "Publish Prototype"}
+              </PublishButton>
+              <CancelButton variant="outlined" onClick={() => router.back()}>
+                Cancel
+              </CancelButton>
+            </ButtonRow>
           </>
         )}
       </Content>

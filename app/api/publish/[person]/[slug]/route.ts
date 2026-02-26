@@ -1,7 +1,5 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 
 const GITHUB_OWNER = "Klover-Fintech";
 const GITHUB_REPO = "prototype-playground";
@@ -24,39 +22,60 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    return NextResponse.json(
+      { error: "GitHub token not configured" },
+      { status: 500 },
+    );
+  }
+
   const { person, slug } = await params;
-  const baseDir = path.join(
-    process.cwd(),
-    "public",
-    "prototypes",
-    person,
-    slug,
-  );
-  const htmlPath = path.join(baseDir, "index.html");
-  const metaPath = path.join(baseDir, "meta.json");
 
   let html = "";
-  if (fs.existsSync(htmlPath)) {
-    html = fs.readFileSync(htmlPath, "utf-8");
+  const filePath = `public/prototypes/${person}/${slug}/index.html`;
+  const htmlRes = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    },
+  );
+  if (htmlRes.ok) {
+    const data = await htmlRes.json();
+    html = Buffer.from(data.content, "base64").toString("utf-8");
   }
 
   let collaborative = true;
-  let externalUrl = "";
-  if (fs.existsSync(metaPath)) {
-    try {
-      const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+  const metaPath = `public/prototypes/${person}/${slug}/meta.json`;
+  try {
+    const metaRes = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${metaPath}?ref=${GITHUB_BRANCH}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+        },
+      },
+    );
+    if (metaRes.ok) {
+      const metaData = await metaRes.json();
+      const meta = JSON.parse(
+        Buffer.from(metaData.content, "base64").toString("utf-8"),
+      );
       collaborative = meta.collaborative !== false;
-      externalUrl = meta.externalUrl || "";
-    } catch {
-      // invalid meta
     }
+  } catch {
+    // no metadata file
   }
 
-  if (!html && !externalUrl) {
+  if (!html) {
     return NextResponse.json({ error: "Prototype not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ html, externalUrl, person, slug, collaborative });
+  return NextResponse.json({ html, person, slug, collaborative });
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {

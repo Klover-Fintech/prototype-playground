@@ -22,50 +22,19 @@ function personFromEmail(email: string): string {
   return local.replace(/[^a-z0-9]/g, "");
 }
 
-async function upsertFile(
-  token: string,
-  filePath: string,
-  content: string,
-  message: string,
-) {
-  let existingSha: string | undefined;
-  try {
-    const checkRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-        },
-      },
-    );
-    if (checkRes.ok) {
-      const existing = await checkRes.json();
-      existingSha = existing.sha;
-    }
-  } catch {
-    // doesn't exist yet
-  }
-
-  const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}`,
+async function ghFetch(token: string, endpoint: string, options?: RequestInit) {
+  return fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}${endpoint}`,
     {
-      method: "PUT",
+      ...options,
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json",
+        ...options?.headers,
       },
-      body: JSON.stringify({
-        message,
-        content: Buffer.from(content).toString("base64"),
-        branch: GITHUB_BRANCH,
-        ...(existingSha && { sha: existingSha }),
-      }),
     },
   );
-
-  return res;
 }
 
 export async function POST(req: NextRequest) {
@@ -83,16 +52,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, html, externalUrl, collaborative } = body as {
+  const { name, html, collaborative } = body as {
     name: string;
-    html?: string;
-    externalUrl?: string;
+    html: string;
     collaborative?: boolean;
   };
 
-  if (!name || (!html && !externalUrl)) {
+  if (!name || !html) {
     return NextResponse.json(
-      { error: "Name and either HTML content or external URL are required" },
+      { error: "Name and HTML content are required" },
       { status: 400 },
     );
   }
@@ -100,42 +68,111 @@ export async function POST(req: NextRequest) {
   const person = personFromEmail(session.user.email);
   const slug = slugify(name);
 
-  if (html) {
-    const filePath = `public/prototypes/${person}/${slug}/index.html`;
-    const res = await upsertFile(
-      token,
-      filePath,
-      html,
-      `${externalUrl ? "Update" : "Add"} prototype: ${person}/${slug}`,
+  const meta = { collaborative: !!collaborative };
+
+  // Get the latest commit SHA on the branch
+  const refRes = await ghFetch(token, `/git/ref/heads/${GITHUB_BRANCH}`);
+  if (!refRes.ok) {
+    return NextResponse.json(
+      { error: "Failed to get branch ref" },
+      { status: 500 },
     );
-
-    if (!res.ok) {
-      const error = await res.json();
-      return NextResponse.json(
-        { error: "Failed to publish", details: error },
-        { status: res.status },
-      );
-    }
   }
+  const refData = await refRes.json();
+  const latestCommitSha = refData.object.sha;
 
-  const meta: Record<string, unknown> = { collaborative: !!collaborative };
-  if (externalUrl) {
-    meta.externalUrl = externalUrl;
+  // Get the tree of the latest commit
+  const commitRes = await ghFetch(token, `/git/commits/${latestCommitSha}`);
+  if (!commitRes.ok) {
+    return NextResponse.json(
+      { error: "Failed to get commit" },
+      { status: 500 },
+    );
   }
+  const commitData = await commitRes.json();
+  const baseTreeSha = commitData.tree.sha;
 
-  const metaPath = `public/prototypes/${person}/${slug}/meta.json`;
-  await upsertFile(
+  // Build tree entries for all files in a single commit
+  const treeEntries: {
+    path: string;
+    mode: string;
+    type: string;
+    content: string;
+  }[] = [];
+
+  treeEntries.push({
+    path: `public/prototypes/${person}/${slug}/index.html`,
+    mode: "100644",
+    type: "blob",
+    content: html,
+  });
+
+  treeEntries.push({
+    path: `public/prototypes/${person}/${slug}/meta.json`,
+    mode: "100644",
+    type: "blob",
+    content: JSON.stringify(meta, null, 2),
+  });
+
+  // Create the new tree
+  const treeRes = await ghFetch(token, "/git/trees", {
+    method: "POST",
+    body: JSON.stringify({
+      base_tree: baseTreeSha,
+      tree: treeEntries,
+    }),
+  });
+
+  if (!treeRes.ok) {
+    const error = await treeRes.json();
+    return NextResponse.json(
+      { error: "Failed to create tree", details: error },
+      { status: treeRes.status },
+    );
+  }
+  const treeData = await treeRes.json();
+
+  // Create the commit
+  const message = `Publish prototype: ${person}/${slug}`;
+  const newCommitRes = await ghFetch(token, "/git/commits", {
+    method: "POST",
+    body: JSON.stringify({
+      message,
+      tree: treeData.sha,
+      parents: [latestCommitSha],
+    }),
+  });
+
+  if (!newCommitRes.ok) {
+    const error = await newCommitRes.json();
+    return NextResponse.json(
+      { error: "Failed to create commit", details: error },
+      { status: newCommitRes.status },
+    );
+  }
+  const newCommitData = await newCommitRes.json();
+
+  // Update the branch ref
+  const updateRefRes = await ghFetch(
     token,
-    metaPath,
-    JSON.stringify(meta, null, 2),
-    `Update metadata: ${person}/${slug}`,
+    `/git/refs/heads/${GITHUB_BRANCH}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ sha: newCommitData.sha }),
+    },
   );
 
-  const prototypeUrl = `/prototypes/${person}/${slug}/`;
+  if (!updateRefRes.ok) {
+    const error = await updateRefRes.json();
+    return NextResponse.json(
+      { error: "Failed to update branch", details: error },
+      { status: updateRefRes.status },
+    );
+  }
 
   return NextResponse.json({
     success: true,
-    url: prototypeUrl,
+    url: `/html/${person}/${slug}/`,
     person,
     slug,
   });
