@@ -320,6 +320,16 @@ const MainContent = styled.main`
   position: relative;
 `;
 
+const CollaborationOverlayWrapper = styled.div<{ $collapsed: boolean }>`
+  position: fixed;
+  top: 64px;
+  left: ${({ $collapsed }) => ($collapsed ? 0 : SIDEBAR_WIDTH)}px;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  pointer-events: none;
+`;
+
 interface AppShellProps {
   children: React.ReactNode;
 }
@@ -544,14 +554,14 @@ export default function AppShell({ children }: AppShellProps) {
             ))}
           </SidebarContent>
         </Sidebar>
-        <MainContent>
-          {children}
-          {isPrototypePage && (
+        <MainContent>{children}</MainContent>
+        {isPrototypePage && (
+          <CollaborationOverlayWrapper $collapsed={collapsed}>
             <CollaborationOverlay
               roomId={`prototype-${pathname.replace(/\//g, "-").replace(/^-|-$/g, "")}`}
             />
-          )}
-        </MainContent>
+          </CollaborationOverlayWrapper>
+        )}
       </Body>
 
       {deleteTarget && (

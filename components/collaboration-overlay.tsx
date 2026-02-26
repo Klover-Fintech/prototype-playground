@@ -77,22 +77,28 @@ export default function CollaborationOverlay({
         </>
       )}
 
-      <Button
-        variant="contained"
-        color={open ? "error" : "primary"}
-        onClick={() => setOpen(!open)}
-        sx={{
+      <div
+        style={{
           position: "absolute",
           bottom: 16,
           right: 16,
           zIndex: 10,
-          borderRadius: "20px",
-          textTransform: "none",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          pointerEvents: "auto",
         }}
       >
-        {open ? "Close Whiteboard" : "Collaborate"}
-      </Button>
+        <Button
+          variant="contained"
+          color={open ? "error" : "primary"}
+          onClick={() => setOpen(!open)}
+          sx={{
+            borderRadius: "20px",
+            textTransform: "none",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          }}
+        >
+          {open ? "Close Whiteboard" : "Collaborate"}
+        </Button>
+      </div>
     </>
   );
 }
