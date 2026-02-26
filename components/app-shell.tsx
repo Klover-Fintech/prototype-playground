@@ -14,8 +14,10 @@ import {
 } from "@attain-sre/attain-design-system";
 import { PlusIcon } from "@phosphor-icons/react";
 import type { Prototype } from "@/lib/prototypes";
+import type { CollaborationOverlayProps } from "@/components/collaboration-overlay";
+import { PrototypeScrollProvider } from "@/context/prototype-scroll-context";
 
-const CollaborationOverlay = dynamic(
+const CollaborationOverlay = dynamic<CollaborationOverlayProps>(
   () => import("@/components/collaboration-overlay"),
   { ssr: false },
 );
@@ -320,18 +322,46 @@ const MainContent = styled.main`
   position: relative;
 `;
 
-const CollaborationOverlayWrapper = styled.div<{ $collapsed: boolean }>`
-  position: fixed;
-  top: 64px;
-  left: ${({ $collapsed }) => ($collapsed ? 0 : SIDEBAR_WIDTH)}px;
+const HEADER_HEIGHT = 64;
+
+const CollaborationOverlayWrapper = styled.div`
+  position: sticky;
+  top: 0;
+  left: 0;
   right: 0;
-  bottom: 0;
+  height: 0;
+  flex-shrink: 0;
   z-index: 4;
   pointer-events: none;
+  overflow: visible;
+`;
+
+const CollaborationOverlayViewport = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(100vh - ${HEADER_HEIGHT}px);
 `;
 
 interface AppShellProps {
   children: React.ReactNode;
+}
+
+function CollaborationOverlayWithScroll({
+  roomId,
+  open,
+  onOpenChange,
+}: CollaborationOverlayProps) {
+  return (
+    <CollaborationOverlayViewport>
+      <CollaborationOverlay
+        roomId={roomId}
+        open={open}
+        onOpenChange={onOpenChange}
+      />
+    </CollaborationOverlayViewport>
+  );
 }
 
 function formatSlug(slug: string): string {
@@ -400,6 +430,7 @@ export default function AppShell({ children }: AppShellProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Prototype | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -554,14 +585,20 @@ export default function AppShell({ children }: AppShellProps) {
             ))}
           </SidebarContent>
         </Sidebar>
-        <MainContent>{children}</MainContent>
-        {isPrototypePage && (
-          <CollaborationOverlayWrapper $collapsed={collapsed}>
-            <CollaborationOverlay
-              roomId={`prototype-${pathname.replace(/\//g, "-").replace(/^-|-$/g, "")}`}
-            />
-          </CollaborationOverlayWrapper>
-        )}
+        <MainContent>
+          <PrototypeScrollProvider>
+            {isPrototypePage && (
+              <CollaborationOverlayWrapper>
+                <CollaborationOverlayWithScroll
+                  roomId={`prototype-${pathname.replace(/\//g, "-").replace(/^-|-$/g, "")}`}
+                  open={overlayOpen}
+                  onOpenChange={setOverlayOpen}
+                />
+              </CollaborationOverlayWrapper>
+            )}
+            {children}
+          </PrototypeScrollProvider>
+        </MainContent>
       </Body>
 
       {deleteTarget && (

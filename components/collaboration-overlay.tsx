@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import { Tldraw } from "tldraw";
+import type { Editor } from "tldraw";
 import { useSyncDemo } from "@tldraw/sync";
 import "tldraw/tldraw.css";
 import styled from "styled-components";
 import { Button } from "@attain-sre/attain-design-system";
+import { usePrototypeScroll } from "@/context/prototype-scroll-context";
 
-const WhiteboardPanel = styled.div`
+/* Overlay canvas follows prototype scroll (one-way: prototype scroll → overlay). Panning the whiteboard does not scroll the prototype. */
+const WhiteboardPanel = styled.div<{ $scrollTop: number }>`
   position: absolute;
   top: 0;
   left: 0;
@@ -26,6 +29,8 @@ const WhiteboardPanel = styled.div`
 
   .tl-canvas {
     background: transparent !important;
+    transform: translateY(-${({ $scrollTop }) => $scrollTop}px);
+    will-change: transform;
   }
 
   .tl-grid {
@@ -49,30 +54,42 @@ const CollabBanner = styled.div`
   white-space: nowrap;
 `;
 
-function CollaborativeTldraw({ roomId }: { roomId: string }) {
+function CollaborativeTldraw({
+  roomId,
+  scrollTop,
+}: {
+  roomId: string;
+  scrollTop: number;
+}) {
   const store = useSyncDemo({ roomId });
-
+  const onMount = useRef((editor: Editor) => {
+    editor.setCameraOptions({ isLocked: true });
+  });
   return (
-    <WhiteboardPanel>
-      <Tldraw store={store} autoFocus />
+    <WhiteboardPanel $scrollTop={scrollTop}>
+      <Tldraw store={store} autoFocus onMount={onMount.current} />
     </WhiteboardPanel>
   );
 }
 
-interface CollaborationOverlayProps {
+export interface CollaborationOverlayProps {
   roomId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export default function CollaborationOverlay({
   roomId,
+  open,
+  onOpenChange,
 }: CollaborationOverlayProps) {
-  const [open, setOpen] = useState(false);
+  const { scrollTop } = usePrototypeScroll();
 
   return (
     <>
       {open && (
         <>
-          <CollaborativeTldraw roomId={roomId} />
+          <CollaborativeTldraw roomId={roomId} scrollTop={scrollTop} />
           <CollabBanner>Collaboration mode — draw to annotate</CollabBanner>
         </>
       )}
@@ -89,7 +106,7 @@ export default function CollaborationOverlay({
         <Button
           variant="contained"
           color={open ? "error" : "primary"}
-          onClick={() => setOpen(!open)}
+          onClick={() => onOpenChange(!open)}
           sx={{
             borderRadius: "20px",
             textTransform: "none",
