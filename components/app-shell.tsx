@@ -324,6 +324,10 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+function formatSlug(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function personFromEmail(email: string): string {
   const local = email.split("@")[0].toLowerCase();
   if (local.includes(".")) {
@@ -489,7 +493,7 @@ export default function AppShell({ children }: AppShellProps) {
                           pathname === proto.href.replace(/\/$/, "")
                         }
                       >
-                        {proto.slug.replace(/-/g, " ")}
+                        {proto.name || formatSlug(proto.slug)}
                         <TypeBadge>{proto.type}</TypeBadge>
                       </NavLink>
                       {isOwned && (
@@ -556,8 +560,10 @@ export default function AppShell({ children }: AppShellProps) {
             <DialogTitle>Delete prototype?</DialogTitle>
             <DialogText>
               Are you sure you want to delete{" "}
-              <strong>{deleteTarget.slug.replace(/-/g, " ")}</strong>? This will
-              remove it from the repository and cannot be undone.
+              <strong>
+                {deleteTarget.name || formatSlug(deleteTarget.slug)}
+              </strong>
+              ? This will remove it from the repository and cannot be undone.
             </DialogText>
             <DialogActions>
               <DialogBtn

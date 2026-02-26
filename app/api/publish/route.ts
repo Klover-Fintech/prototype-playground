@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 const GITHUB_OWNER = "Klover-Fintech";
 const GITHUB_REPO = "prototype-playground";
@@ -52,10 +54,12 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, html, collaborative } = body as {
+  const { name, displayName, html, collaborative, oldSlug } = body as {
     name: string;
+    displayName?: string;
     html: string;
     collaborative?: boolean;
+    oldSlug?: string;
   };
 
   if (!name || !html) {
@@ -67,8 +71,12 @@ export async function POST(req: NextRequest) {
 
   const person = personFromEmail(session.user.email);
   const slug = slugify(name);
+  const isRename = oldSlug && oldSlug !== slug;
 
-  const meta = { collaborative: !!collaborative };
+  const meta: Record<string, unknown> = { collaborative: !!collaborative };
+  if (displayName) {
+    meta.name = displayName;
+  }
 
   // Get the latest commit SHA on the branch
   const refRes = await ghFetch(token, `/git/ref/heads/${GITHUB_BRANCH}`);
@@ -92,13 +100,28 @@ export async function POST(req: NextRequest) {
   const commitData = await commitRes.json();
   const baseTreeSha = commitData.tree.sha;
 
-  // Build tree entries for all files in a single commit
   const treeEntries: {
     path: string;
     mode: string;
     type: string;
-    content: string;
+    content?: string;
+    sha?: null;
   }[] = [];
+
+  if (isRename) {
+    treeEntries.push({
+      path: `public/prototypes/${person}/${oldSlug}/index.html`,
+      mode: "100644",
+      type: "blob",
+      sha: null,
+    });
+    treeEntries.push({
+      path: `public/prototypes/${person}/${oldSlug}/meta.json`,
+      mode: "100644",
+      type: "blob",
+      sha: null,
+    });
+  }
 
   treeEntries.push({
     path: `public/prototypes/${person}/${slug}/index.html`,
@@ -132,8 +155,9 @@ export async function POST(req: NextRequest) {
   }
   const treeData = await treeRes.json();
 
-  // Create the commit
-  const message = `Publish prototype: ${person}/${slug}`;
+  const message = isRename
+    ? `Rename prototype: ${person}/${oldSlug} → ${slug}`
+    : `Publish prototype: ${person}/${slug}`;
   const newCommitRes = await ghFetch(token, "/git/commits", {
     method: "POST",
     body: JSON.stringify({
@@ -168,6 +192,36 @@ export async function POST(req: NextRequest) {
       { error: "Failed to update branch", details: error },
       { status: updateRefRes.status },
     );
+  }
+
+  try {
+    const localDir = path.join(
+      process.cwd(),
+      "public",
+      "prototypes",
+      person,
+      slug,
+    );
+    fs.mkdirSync(localDir, { recursive: true });
+    fs.writeFileSync(path.join(localDir, "index.html"), html, "utf-8");
+    fs.writeFileSync(
+      path.join(localDir, "meta.json"),
+      JSON.stringify(meta, null, 2),
+      "utf-8",
+    );
+
+    if (isRename) {
+      const oldDir = path.join(
+        process.cwd(),
+        "public",
+        "prototypes",
+        person,
+        oldSlug,
+      );
+      fs.rmSync(oldDir, { recursive: true, force: true });
+    }
+  } catch {
+    // Local sync is best-effort; GitHub is the source of truth
   }
 
   return NextResponse.json({

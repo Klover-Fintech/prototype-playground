@@ -49,6 +49,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   let collaborative = true;
+  let displayName: string | undefined;
   const metaPath = `public/prototypes/${person}/${slug}/meta.json`;
   try {
     const metaRes = await fetch(
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         Buffer.from(metaData.content, "base64").toString("utf-8"),
       );
       collaborative = meta.collaborative !== false;
+      if (meta.name) displayName = meta.name;
     }
   } catch {
     // no metadata file
@@ -75,7 +77,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Prototype not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ html, person, slug, collaborative });
+  return NextResponse.json({
+    html,
+    person,
+    slug,
+    name: displayName,
+    collaborative,
+  });
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {

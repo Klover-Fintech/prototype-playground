@@ -4,6 +4,7 @@ import path from "path";
 export interface Prototype {
   person: string;
   slug: string;
+  name?: string;
   type: "react" | "html";
   href: string;
   collaborative?: boolean;

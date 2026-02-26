@@ -7,6 +7,7 @@ const GITHUB_BRANCH = "master";
 interface Prototype {
   person: string;
   slug: string;
+  name?: string;
   type: "react" | "html";
   href: string;
   collaborative?: boolean;
@@ -67,6 +68,7 @@ async function getGitHubPrototypes(): Promise<Prototype[]> {
       );
 
       let collaborative = true;
+      let displayName: string | undefined;
 
       if (metaFile) {
         try {
@@ -79,6 +81,7 @@ async function getGitHubPrototypes(): Promise<Prototype[]> {
               Buffer.from(metaData.content, "base64").toString("utf-8"),
             );
             collaborative = meta.collaborative !== false;
+            if (meta.name) displayName = meta.name;
           }
         } catch {
           // ignore
@@ -89,6 +92,7 @@ async function getGitHubPrototypes(): Promise<Prototype[]> {
         results.push({
           person,
           slug,
+          name: displayName,
           type: "html",
           href: `/html/${person}/${slug}`,
           collaborative,

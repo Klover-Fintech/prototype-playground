@@ -290,6 +290,10 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function unslugify(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function PublishPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -302,7 +306,7 @@ export default function PublishPage() {
   const [htmlContent, setHtmlContent] = useState(
     isEditMode ? "" : STARTER_HTML,
   );
-  const [name, setName] = useState(isEditMode ? editSlug : "");
+  const [name, setName] = useState(isEditMode ? unslugify(editSlug ?? "") : "");
   const [publishing, setPublishing] = useState(false);
   const [loading, setLoading] = useState(isEditMode);
   const [result, setResult] = useState<{ url: string } | null>(null);
@@ -311,13 +315,14 @@ export default function PublishPage() {
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const slug = isEditMode ? editSlug : slugify(name);
+  const slug = slugify(name);
   const person = isEditMode
     ? editPerson
     : (session?.user?.email
         ?.split("@")[0]
         ?.toLowerCase()
         .replace(/[^a-z0-9]/g, "") ?? "");
+  const isRename = isEditMode && slug !== editSlug;
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -329,6 +334,7 @@ export default function PublishPage() {
       .then((data) => {
         setHtmlContent(data.html || "");
         setCollaborative(!!data.collaborative);
+        if (data.name) setName(data.name);
       })
       .catch(() => {
         setError("Could not load the prototype for editing.");
@@ -374,7 +380,13 @@ export default function PublishPage() {
       const res = await fetch("/api/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: slug, html: htmlContent, collaborative }),
+        body: JSON.stringify({
+          name: slug,
+          displayName: name,
+          html: htmlContent,
+          collaborative,
+          ...(isRename && { oldSlug: editSlug }),
+        }),
       });
 
       const data = await res.json();
@@ -432,16 +444,20 @@ export default function PublishPage() {
                 placeholder="e.g. Acme Landing Page"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                readOnly={isEditMode}
-                style={
-                  isEditMode
-                    ? { background: "#f5f5f5", color: "#666" }
-                    : undefined
-                }
               />
               {slug && (
                 <SlugPreview>
-                  /prototypes/{person}/{slug}/
+                  {isRename ? (
+                    <>
+                      <s>
+                        /prototypes/{person}/{editSlug}/
+                      </s>
+                      {" → "}
+                      /prototypes/{person}/{slug}/
+                    </>
+                  ) : (
+                    `/prototypes/${person}/${slug}/`
+                  )}
                 </SlugPreview>
               )}
             </NameRow>
