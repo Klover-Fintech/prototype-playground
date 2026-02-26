@@ -3,7 +3,6 @@
 import styled from "styled-components";
 import { Button } from "@attain-sre/attain-design-system";
 import { Card } from "@attain-sre/attain-design-system";
-import PrototypeShell from "@/components/prototype-shell";
 
 const PageContent = styled.div`
   padding: 32px 24px;
@@ -138,62 +137,60 @@ const clients = [
 
 export default function ClientOverview() {
   return (
-    <PrototypeShell name="Client Overview">
-      <PageContent>
-        <SectionTitle>Client Portfolio</SectionTitle>
-        <Subtitle>
-          Overview of active and pending client accounts for Q1 2026.
-        </Subtitle>
+    <PageContent>
+      <SectionTitle>Client Portfolio</SectionTitle>
+      <Subtitle>
+        Overview of active and pending client accounts for Q1 2026.
+      </Subtitle>
 
-        <StatsRow>
-          <Card>
-            <StatValue style={{ color: "#1a73e8" }}>6</StatValue>
-            <StatLabel>Total Clients</StatLabel>
-          </Card>
-          <Card>
-            <StatValue style={{ color: "#1e7e34" }}>$1.76M</StatValue>
-            <StatLabel>Total Value</StatLabel>
-          </Card>
-          <Card>
-            <StatValue style={{ color: "#1a73e8" }}>4</StatValue>
-            <StatLabel>Active</StatLabel>
-          </Card>
-          <Card>
-            <StatValue style={{ color: "#b45309" }}>2</StatValue>
-            <StatLabel>Pending</StatLabel>
-          </Card>
-        </StatsRow>
+      <StatsRow>
+        <Card>
+          <StatValue style={{ color: "#1a73e8" }}>6</StatValue>
+          <StatLabel>Total Clients</StatLabel>
+        </Card>
+        <Card>
+          <StatValue style={{ color: "#1e7e34" }}>$1.76M</StatValue>
+          <StatLabel>Total Value</StatLabel>
+        </Card>
+        <Card>
+          <StatValue style={{ color: "#1a73e8" }}>4</StatValue>
+          <StatLabel>Active</StatLabel>
+        </Card>
+        <Card>
+          <StatValue style={{ color: "#b45309" }}>2</StatValue>
+          <StatLabel>Pending</StatLabel>
+        </Card>
+      </StatsRow>
 
-        <SectionTitle>Client List</SectionTitle>
-        <TableWrapper>
-          <Table>
-            <thead>
-              <tr>
-                <Th>Company</Th>
-                <Th>Contact</Th>
-                <Th>Value</Th>
-                <Th>Status</Th>
+      <SectionTitle>Client List</SectionTitle>
+      <TableWrapper>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Company</Th>
+              <Th>Contact</Th>
+              <Th>Value</Th>
+              <Th>Status</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {clients.map((c) => (
+              <tr key={c.name}>
+                <Td style={{ fontWeight: 500 }}>{c.name}</Td>
+                <Td>{c.contact}</Td>
+                <Td>{c.value}</Td>
+                <Td>
+                  <StatusBadge $status={c.status}>{c.status}</StatusBadge>
+                </Td>
               </tr>
-            </thead>
-            <tbody>
-              {clients.map((c) => (
-                <tr key={c.name}>
-                  <Td style={{ fontWeight: 500 }}>{c.name}</Td>
-                  <Td>{c.contact}</Td>
-                  <Td>{c.value}</Td>
-                  <Td>
-                    <StatusBadge $status={c.status}>{c.status}</StatusBadge>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </TableWrapper>
+            ))}
+          </tbody>
+        </Table>
+      </TableWrapper>
 
-        <Button variant="contained" color="primary">
-          Add New Client
-        </Button>
-      </PageContent>
-    </PrototypeShell>
+      <Button variant="contained" color="primary">
+        Add New Client
+      </Button>
+    </PageContent>
   );
 }

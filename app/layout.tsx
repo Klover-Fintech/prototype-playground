@@ -3,6 +3,7 @@ import "./globals.css";
 import StyledComponentsRegistry from "./registry";
 import ThemeProvider from "./theme-provider";
 import SessionProvider from "./session-provider";
+import AppShell from "@/components/app-shell";
 
 export const metadata: Metadata = {
   title: "Prototype Playground",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           <StyledComponentsRegistry>
-            <ThemeProvider>{children}</ThemeProvider>
+            <ThemeProvider>
+              <AppShell>{children}</AppShell>
+            </ThemeProvider>
           </StyledComponentsRegistry>
         </SessionProvider>
       </body>

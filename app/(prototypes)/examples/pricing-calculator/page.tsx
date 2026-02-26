@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Button } from "@attain-sre/attain-design-system";
-import { TextField } from "@attain-sre/attain-design-system";
-import { Card } from "@attain-sre/attain-design-system";
-import PrototypeShell from "@/components/prototype-shell";
+import { Button, TextField } from "@attain-sre/attain-design-system";
 
 const PageContent = styled.div`
   padding: 32px 24px;
@@ -125,9 +122,12 @@ const tiers = [
 ];
 
 export default function PricingCalculator() {
+  const [mounted, setMounted] = useState(false);
   const [selectedTier, setSelectedTier] = useState("growth");
   const [seats, setSeats] = useState("50");
   const [months, setMonths] = useState("12");
+
+  useEffect(() => setMounted(true), []);
 
   const tier = tiers.find((t) => t.id === selectedTier)!;
   const seatCount = Math.max(1, parseInt(seats) || 1);
@@ -137,85 +137,85 @@ export default function PricingCalculator() {
   const discount = monthCount >= 12 ? 0.1 : 0;
   const finalTotal = total * (1 - discount);
 
+  if (!mounted) return null;
+
   return (
-    <PrototypeShell name="Pricing Calculator">
-      <PageContent>
-        <SectionTitle>Pricing Calculator</SectionTitle>
-        <Subtitle>Build a custom quote for your client in seconds.</Subtitle>
+    <PageContent>
+      <SectionTitle>Pricing Calculator</SectionTitle>
+      <Subtitle>Build a custom quote for your client in seconds.</Subtitle>
 
-        <SectionTitle style={{ fontSize: 18 }}>1. Select a tier</SectionTitle>
-        <TierCards>
-          {tiers.map((t) => (
-            <TierCard
-              key={t.id}
-              $selected={selectedTier === t.id}
-              onClick={() => setSelectedTier(t.id)}
-            >
-              <TierName>{t.name}</TierName>
-              <TierPrice>${t.price}/seat/mo</TierPrice>
-              {t.features.map((f) => (
-                <TierFeature key={f}>{f}</TierFeature>
-              ))}
-            </TierCard>
-          ))}
-        </TierCards>
+      <SectionTitle style={{ fontSize: 18 }}>1. Select a tier</SectionTitle>
+      <TierCards>
+        {tiers.map((t) => (
+          <TierCard
+            key={t.id}
+            $selected={selectedTier === t.id}
+            onClick={() => setSelectedTier(t.id)}
+          >
+            <TierName>{t.name}</TierName>
+            <TierPrice>${t.price}/seat/mo</TierPrice>
+            {t.features.map((f) => (
+              <TierFeature key={f}>{f}</TierFeature>
+            ))}
+          </TierCard>
+        ))}
+      </TierCards>
 
-        <SectionTitle style={{ fontSize: 18 }}>2. Configure</SectionTitle>
-        <FormGrid>
-          <TextField
-            label="Number of seats"
-            type="number"
-            variant="outlined"
-            size="small"
-            value={seats}
-            onChange={(e) => setSeats(e.target.value)}
-          />
-          <TextField
-            label="Contract length (months)"
-            type="number"
-            variant="outlined"
-            size="small"
-            value={months}
-            onChange={(e) => setMonths(e.target.value)}
-          />
-        </FormGrid>
+      <SectionTitle style={{ fontSize: 18 }}>2. Configure</SectionTitle>
+      <FormGrid>
+        <TextField
+          label="Number of seats"
+          type="number"
+          variant="outlined"
+          size="small"
+          value={seats}
+          onChange={(e) => setSeats(e.target.value)}
+        />
+        <TextField
+          label="Contract length (months)"
+          type="number"
+          variant="outlined"
+          size="small"
+          value={months}
+          onChange={(e) => setMonths(e.target.value)}
+        />
+      </FormGrid>
 
-        <SectionTitle style={{ fontSize: 18 }}>3. Quote Summary</SectionTitle>
-        <ResultCard>
+      <SectionTitle style={{ fontSize: 18 }}>3. Quote Summary</SectionTitle>
+      <ResultCard>
+        <ResultRow>
+          <span>{tier.name} tier</span>
+          <span>${tier.price}/seat/mo</span>
+        </ResultRow>
+        <ResultRow>
+          <span>Seats</span>
+          <span>{seatCount}</span>
+        </ResultRow>
+        <ResultRow>
+          <span>Monthly subtotal</span>
+          <span>${monthly.toLocaleString()}</span>
+        </ResultRow>
+        <ResultRow>
+          <span>Contract ({monthCount} months)</span>
+          <span>${total.toLocaleString()}</span>
+        </ResultRow>
+        {discount > 0 && (
           <ResultRow>
-            <span>{tier.name} tier</span>
-            <span>${tier.price}/seat/mo</span>
+            <span>Annual discount (10%)</span>
+            <span style={{ color: "#1e7e34" }}>
+              -${(total * discount).toLocaleString()}
+            </span>
           </ResultRow>
-          <ResultRow>
-            <span>Seats</span>
-            <span>{seatCount}</span>
-          </ResultRow>
-          <ResultRow>
-            <span>Monthly subtotal</span>
-            <span>${monthly.toLocaleString()}</span>
-          </ResultRow>
-          <ResultRow>
-            <span>Contract ({monthCount} months)</span>
-            <span>${total.toLocaleString()}</span>
-          </ResultRow>
-          {discount > 0 && (
-            <ResultRow>
-              <span>Annual discount (10%)</span>
-              <span style={{ color: "#1e7e34" }}>
-                -${(total * discount).toLocaleString()}
-              </span>
-            </ResultRow>
-          )}
-          <ResultRow>
-            <span>Total</span>
-            <span>${finalTotal.toLocaleString()}</span>
-          </ResultRow>
-        </ResultCard>
+        )}
+        <ResultRow>
+          <span>Total</span>
+          <span>${finalTotal.toLocaleString()}</span>
+        </ResultRow>
+      </ResultCard>
 
-        <Button variant="contained" color="primary">
-          Export Quote as PDF
-        </Button>
-      </PageContent>
-    </PrototypeShell>
+      <Button variant="contained" color="primary">
+        Export Quote as PDF
+      </Button>
+    </PageContent>
   );
 }

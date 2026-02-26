@@ -4,8 +4,10 @@ import path from "path";
 export interface Prototype {
   person: string;
   slug: string;
-  type: "react" | "html";
+  type: "react" | "html" | "url";
   href: string;
+  collaborative?: boolean;
+  externalUrl?: string;
 }
 
 const IGNORED_DIRS = new Set(["_example", "node_modules", ".next"]);
@@ -71,12 +73,35 @@ function getHtmlPrototypes(): Prototype[] {
 
       const hasIndex = fs.existsSync(path.join(slugDir, "index.html"));
 
-      if (hasIndex) {
+      let collaborative = true;
+      let externalUrl = "";
+      const metaPath = path.join(slugDir, "meta.json");
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+          collaborative = meta.collaborative !== false;
+          externalUrl = meta.externalUrl || "";
+        } catch {
+          // invalid meta.json
+        }
+      }
+
+      if (externalUrl) {
+        results.push({
+          person,
+          slug,
+          type: "url",
+          href: `/embed/${person}/${slug}`,
+          collaborative,
+          externalUrl,
+        });
+      } else if (hasIndex) {
         results.push({
           person,
           slug,
           type: "html",
-          href: `/prototypes/${person}/${slug}/`,
+          href: `/html/${person}/${slug}`,
+          collaborative,
         });
       }
     }
