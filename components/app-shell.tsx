@@ -446,7 +446,7 @@ export default function AppShell({ children }: AppShellProps) {
     }
   };
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || !session) {
     return <>{children}</>;
   }
 

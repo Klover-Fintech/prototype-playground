@@ -2,6 +2,8 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
 const ALLOWED_DOMAINS = [
+  "klover.app",
+  "klovercredit.com",
   "joinklover.com",
   "attaindata.io",
   "attainoutcomes.com",
