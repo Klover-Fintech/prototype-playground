@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  compiler: {
+    styledComponents: true,
+  },
+  trailingSlash: true,
+  async rewrites() {
+    return [
+      {
+        source: "/prototypes/:path*/",
+        destination: "/prototypes/:path*/index.html",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

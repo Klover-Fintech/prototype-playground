@@ -3,19 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "open http://localhost:3000 && next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@attain-sre/attain-design-system": "^0.1.4",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/lab": "^7.0.1-beta.22",
+    "@mui/material": "^7.3.8",
     "next": "16.1.6",
+    "next-auth": "^5.0.0-beta.30",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "styled-components": "^6.3.11"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/styled-components": "^5.1.36",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "^5"
   }
 }

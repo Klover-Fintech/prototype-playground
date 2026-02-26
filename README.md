@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prototype Playground
+
+A shared Next.js app where salespeople create and share web prototypes. Each person gets their own namespace folder. Prototypes are auto-discovered and listed on the homepage.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the prototype directory.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Creating a Prototype
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+There are two ways to add a prototype: **React** or **raw HTML**.
 
-## Learn More
+### Option 1: React Prototype (recommended)
 
-To learn more about Next.js, take a look at the following resources:
+Create a folder under `app/(prototypes)/your-name/your-prototype/` with a `page.tsx`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/(prototypes)/
+  jane/
+    acme-pitch/
+      page.tsx      <-- your prototype
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Your prototype is a standard React component. Add `"use client"` at the top for interactive pages. You can import from the Attain Design System and use styled-components:
 
-## Deploy on Vercel
+```tsx
+"use client";
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+import styled from "styled-components";
+import { Button, Card, TextField } from "@attain-sre/attain-design-system";
+import PrototypeShell from "@/components/prototype-shell";
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+const Wrapper = styled.div`
+  padding: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+`;
+
+export default function AcmePitch() {
+  return (
+    <PrototypeShell name="Acme Pitch">
+      <Wrapper>
+        <h1>My Prototype</h1>
+        <Button variant="contained">Click me</Button>
+      </Wrapper>
+    </PrototypeShell>
+  );
+}
+```
+
+Your prototype will be available at `http://localhost:3000/jane/acme-pitch`.
+
+The `PrototypeShell` wrapper is optional -- it adds a header bar with a back link to the directory. You can skip it for full-page prototypes.
+
+### Option 2: Raw HTML Prototype
+
+Drop an `index.html` file into `public/prototypes/your-name/your-prototype/`:
+
+```
+public/prototypes/
+  jane/
+    quick-demo/
+      index.html    <-- your prototype
+      styles.css    <-- optional assets
+      script.js     <-- optional assets
+```
+
+The file is served statically at `/prototypes/jane/quick-demo/index.html` and will appear in the homepage directory.
+
+## Available Components
+
+The Attain Design System (`@attain-sre/attain-design-system`) includes:
+
+- **Layout**: Box, Stack, Container, Grid
+- **Inputs**: Button, TextField, Textarea, Select, Checkbox, Switch, Slider, Autocomplete, RadioGroup
+- **Display**: Card, Chip, Badge, Avatar, Table, Tabs, Accordion, LinearProgress, ProgressBar
+- **Feedback**: Alert, Snackbar, Dialog, Tooltip, Skeleton, Backdrop
+- **Navigation**: Menu, MenuItem, Popover
+
+You can also use any [MUI component](https://mui.com/material-ui/) directly since it's included as a dependency.
+
+## Styling
+
+Use **styled-components** for custom styling:
+
+```tsx
+import styled from "styled-components";
+
+const Hero = styled.section`
+  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+  color: white;
+  padding: 64px 32px;
+`;
+```
+
+## Deploying to Vercel
+
+Connect this repository to Vercel. The default settings work out of the box -- no configuration needed.
+
+## Project Structure
+
+```
+app/
+  layout.tsx                  # Root layout (providers)
+  page.tsx                    # Homepage directory
+  registry.tsx                # styled-components SSR
+  theme-provider.tsx          # Attain theme setup
+  (prototypes)/               # Route group (not in URL)
+    steven/
+      example-dashboard/
+        page.tsx              # Example React prototype
+components/
+  prototype-shell.tsx         # Optional page wrapper
+  directory.tsx               # Homepage listing component
+lib/
+  prototypes.ts               # Filesystem scanner
+public/
+  prototypes/                 # Raw HTML prototypes
+    steven/
+      raw-example/
+        index.html
+```
