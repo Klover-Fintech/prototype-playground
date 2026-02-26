@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
@@ -294,7 +294,7 @@ function unslugify(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function PublishPage() {
+function PublishPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -556,5 +556,25 @@ export default function PublishPage() {
         )}
       </Content>
     </Page>
+  );
+}
+
+export default function PublishPage() {
+  return (
+    <Suspense
+      fallback={
+        <Page>
+          <Content>
+            <div
+              style={{ padding: "48px", textAlign: "center", color: "#999" }}
+            >
+              Loading...
+            </div>
+          </Content>
+        </Page>
+      }
+    >
+      <PublishPageContent />
+    </Suspense>
   );
 }
