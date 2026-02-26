@@ -64,6 +64,13 @@ function CollaborativeTldraw({
   const store = useSyncDemo({ roomId });
   const onMount = useRef((editor: Editor) => {
     editor.setCameraOptions({ isLocked: true });
+    editor.updateInstanceState({ isFocusMode: false });
+    const interval = setInterval(() => {
+      if (editor.getInstanceState().isFocusMode) {
+        editor.updateInstanceState({ isFocusMode: false });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
   });
   return (
     <WhiteboardPanel $scrollTop={scrollTop}>
