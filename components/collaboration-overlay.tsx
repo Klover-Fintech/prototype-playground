@@ -72,9 +72,16 @@ function CollaborativeTldraw({
     }, 1000);
     return () => clearInterval(interval);
   });
+  const licenseKey = process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY ?? undefined;
+
   return (
     <WhiteboardPanel $scrollTop={scrollTop}>
-      <Tldraw store={store} autoFocus onMount={onMount.current} />
+      <Tldraw
+        store={store}
+        autoFocus
+        onMount={onMount.current}
+        licenseKey={licenseKey}
+      />
     </WhiteboardPanel>
   );
 }
