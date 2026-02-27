@@ -1,104 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import styled from "styled-components";
+import { useSyncExternalStore, useState } from "react";
 import { Button, TextField } from "@attain-sre/attain-design-system";
+import * as Styled from "./page.styles";
 
-const PageContent = styled.div`
-  padding: 32px 24px;
-  max-width: 720px;
-  margin: 0 auto;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 22px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-`;
-
-const Subtitle = styled.p`
-  font-size: 15px;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 32px;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const TierCards = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
-
-  @media (max-width: 700px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const TierCard = styled.div<{ $selected: boolean }>`
-  border: 2px solid ${({ $selected }) => ($selected ? "#1a73e8" : "#e0e0e0")};
-  border-radius: 8px;
-  padding: 20px;
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-  background: ${({ $selected }) => ($selected ? "#f0f6ff" : "#fff")};
-
-  &:hover {
-    border-color: #1a73e8;
-  }
-`;
-
-const TierName = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-`;
-
-const TierPrice = styled.div`
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a73e8;
-  margin-bottom: 8px;
-`;
-
-const TierFeature = styled.div`
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 2px;
-`;
-
-const ResultCard = styled.div`
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
-`;
-
-const ResultRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 15px;
-  border-bottom: 1px solid #e8e8e8;
-
-  &:last-child {
-    border-bottom: none;
-    font-weight: 600;
-    font-size: 18px;
-    padding-top: 12px;
-  }
-`;
+function emptySubscribe() {
+  return () => {};
+}
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 const tiers = [
   {
@@ -122,12 +32,14 @@ const tiers = [
 ];
 
 export default function PricingCalculator() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
   const [selectedTier, setSelectedTier] = useState("growth");
   const [seats, setSeats] = useState("50");
   const [months, setMonths] = useState("12");
-
-  useEffect(() => setMounted(true), []);
 
   const tier = tiers.find((t) => t.id === selectedTier)!;
   const seatCount = Math.max(1, parseInt(seats) || 1);
@@ -140,29 +52,31 @@ export default function PricingCalculator() {
   if (!mounted) return null;
 
   return (
-    <PageContent>
-      <SectionTitle>Pricing Calculator</SectionTitle>
-      <Subtitle>Build a custom quote for your client in seconds.</Subtitle>
+    <Styled.PageContent>
+      <Styled.SectionTitle>Pricing Calculator</Styled.SectionTitle>
+      <Styled.Subtitle>
+        Build a custom quote for your client in seconds.
+      </Styled.Subtitle>
 
-      <SectionTitle style={{ fontSize: 18 }}>1. Select a tier</SectionTitle>
-      <TierCards>
+      <Styled.SectionTitleSmall>1. Select a tier</Styled.SectionTitleSmall>
+      <Styled.TierCards>
         {tiers.map((t) => (
-          <TierCard
+          <Styled.TierCard
             key={t.id}
             $selected={selectedTier === t.id}
             onClick={() => setSelectedTier(t.id)}
           >
-            <TierName>{t.name}</TierName>
-            <TierPrice>${t.price}/seat/mo</TierPrice>
+            <Styled.TierName>{t.name}</Styled.TierName>
+            <Styled.TierPrice>${t.price}/seat/mo</Styled.TierPrice>
             {t.features.map((f) => (
-              <TierFeature key={f}>{f}</TierFeature>
+              <Styled.TierFeature key={f}>{f}</Styled.TierFeature>
             ))}
-          </TierCard>
+          </Styled.TierCard>
         ))}
-      </TierCards>
+      </Styled.TierCards>
 
-      <SectionTitle style={{ fontSize: 18 }}>2. Configure</SectionTitle>
-      <FormGrid>
+      <Styled.SectionTitleSmall>2. Configure</Styled.SectionTitleSmall>
+      <Styled.FormGrid>
         <TextField
           label="Number of seats"
           type="number"
@@ -179,43 +93,43 @@ export default function PricingCalculator() {
           value={months}
           onChange={(e) => setMonths(e.target.value)}
         />
-      </FormGrid>
+      </Styled.FormGrid>
 
-      <SectionTitle style={{ fontSize: 18 }}>3. Quote Summary</SectionTitle>
-      <ResultCard>
-        <ResultRow>
+      <Styled.SectionTitleSmall>3. Quote Summary</Styled.SectionTitleSmall>
+      <Styled.ResultCard>
+        <Styled.ResultRow>
           <span>{tier.name} tier</span>
           <span>${tier.price}/seat/mo</span>
-        </ResultRow>
-        <ResultRow>
+        </Styled.ResultRow>
+        <Styled.ResultRow>
           <span>Seats</span>
           <span>{seatCount}</span>
-        </ResultRow>
-        <ResultRow>
+        </Styled.ResultRow>
+        <Styled.ResultRow>
           <span>Monthly subtotal</span>
           <span>${monthly.toLocaleString()}</span>
-        </ResultRow>
-        <ResultRow>
+        </Styled.ResultRow>
+        <Styled.ResultRow>
           <span>Contract ({monthCount} months)</span>
           <span>${total.toLocaleString()}</span>
-        </ResultRow>
+        </Styled.ResultRow>
         {discount > 0 && (
-          <ResultRow>
+          <Styled.ResultRow>
             <span>Annual discount (10%)</span>
-            <span style={{ color: "#1e7e34" }}>
+            <Styled.DiscountAmount>
               -${(total * discount).toLocaleString()}
-            </span>
-          </ResultRow>
+            </Styled.DiscountAmount>
+          </Styled.ResultRow>
         )}
-        <ResultRow>
+        <Styled.ResultRow>
           <span>Total</span>
           <span>${finalTotal.toLocaleString()}</span>
-        </ResultRow>
-      </ResultCard>
+        </Styled.ResultRow>
+      </Styled.ResultCard>
 
       <Button variant="contained" color="primary">
         Export Quote as PDF
       </Button>
-    </PageContent>
+    </Styled.PageContent>
   );
 }

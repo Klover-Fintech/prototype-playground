@@ -1,17 +1,9 @@
+import type { Prototype } from "@/lib/prototypes";
 import { NextResponse } from "next/server";
 
-const GITHUB_OWNER = "Klover-Fintech";
-const GITHUB_REPO = "prototype-playground";
-const GITHUB_BRANCH = "master";
-
-interface Prototype {
-  person: string;
-  slug: string;
-  name?: string;
-  type: "react" | "html";
-  href: string;
-  collaborative?: boolean;
-}
+const GITHUB_OWNER = process.env.GITHUB_OWNER ?? "Klover-Fintech";
+const GITHUB_REPO = process.env.GITHUB_REPO ?? "prototype-playground";
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH ?? "master";
 
 async function ghFetch(endpoint: string) {
   const token = process.env.GITHUB_TOKEN;

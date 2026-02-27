@@ -1,18 +1,10 @@
 import { auth } from "@/auth";
+import { personFromEmail } from "@/lib/people";
 import { NextRequest, NextResponse } from "next/server";
 
-const GITHUB_OWNER = "Klover-Fintech";
-const GITHUB_REPO = "prototype-playground";
-const GITHUB_BRANCH = "master";
-
-function personFromEmail(email: string): string {
-  const local = email.split("@")[0].toLowerCase();
-  if (local.includes(".")) {
-    const parts = local.split(".");
-    return (parts[0][0] + parts.slice(1).join("")).replace(/[^a-z0-9]/g, "");
-  }
-  return local.replace(/[^a-z0-9]/g, "");
-}
+const GITHUB_OWNER = process.env.GITHUB_OWNER ?? "Klover-Fintech";
+const GITHUB_REPO = process.env.GITHUB_REPO ?? "prototype-playground";
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH ?? "master";
 
 type RouteParams = { params: Promise<{ person: string; slug: string }> };
 

@@ -16,3 +16,13 @@ import Button from "@mui/material/Button";
 See the full list of available components in `node_modules/@attain-sre/attain-design-system/index.d.ts`.
 
 Only fall back to raw MUI for components not exported by the design system.
+
+---
+
+## Styling: avoid inline styles; use styled-components
+
+- Avoid inline styles (`style={{ ... }}`) unless absolutely necessary (e.g. dynamic values that cannot be expressed in CSS, or third-party components that require inline style props).
+- Prefer styled-components for layout and component styling.
+- Put all styled components in a separate file with the same base name and `.styles.ts` suffix (e.g. `app-shell.tsx` → `app-shell.styles.ts`). Import styled components from the `.styles.ts` file into the component file.
+- **Namespace import:** Always import styles as a namespace: `import * as Styled from "./component.styles"` (or from `"./page.styles"` for page files). Use the `Styled.` prefix for every styled component in JSX (e.g. `<Styled.Layout>`, `<Styled.HeaderBar>`). Do not use named imports like `import { Layout, HeaderBar } from "./component.styles"`.
+- When inline styles are unavoidable, add a short comment explaining why.

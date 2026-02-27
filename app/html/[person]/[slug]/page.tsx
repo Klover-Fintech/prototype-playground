@@ -2,21 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useRef, useEffect } from "react";
-import styled from "styled-components";
 import { usePrototypeScroll } from "@/context/prototype-scroll-context";
-
-const Wrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100% + 1px);
-`;
-
-const Frame = styled.iframe`
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  border: none;
-`;
+import * as Styled from "./page.styles";
 
 export default function HtmlPrototypePage() {
   const { person, slug } = useParams<{ person: string; slug: string }>();
@@ -88,8 +75,8 @@ export default function HtmlPrototypePage() {
   }, [setScrollTop]);
 
   return (
-    <Wrapper>
-      <Frame ref={frameRef} src={`/prototypes/${person}/${slug}/`} />
-    </Wrapper>
+    <Styled.Wrapper>
+      <Styled.Frame ref={frameRef} src={`/prototypes/${person}/${slug}/`} />
+    </Styled.Wrapper>
   );
 }

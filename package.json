@@ -5,14 +5,13 @@
   "scripts": {
     "dev": "open http://localhost:3000 && next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@attain-sre/attain-design-system": "^0.1.4",
     "@codemirror/lang-html": "^6.4.11",
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/lab": "^7.0.1-beta.22",
     "@mui/material": "^7.3.8",
     "@phosphor-icons/react": "^2.1.10",
     "@tldraw/sync": "^4.4.0",
@@ -29,6 +28,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/styled-components": "^5.1.36",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5"
   }

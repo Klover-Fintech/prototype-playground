@@ -1,357 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import styled from "styled-components";
-import {
-  Button,
-  IconButton,
-  Avatar,
-  theme,
-} from "@attain-sre/attain-design-system";
-import { PlusIcon } from "@phosphor-icons/react";
+import { useSession } from "next-auth/react";
+import { Button } from "@attain-sre/attain-design-system";
+import { ListIcon, PlusIcon } from "@phosphor-icons/react";
 import type { Prototype } from "@/lib/prototypes";
+import { formatSlug, personFromEmail } from "@/lib/people";
 import type { CollaborationOverlayProps } from "@/components/collaboration-overlay";
+import { UserMenu } from "./user-menu";
+import { ConfirmDialog } from "./confirm-dialog";
 import { PrototypeScrollProvider } from "@/context/prototype-scroll-context";
+import * as Styled from "./app-shell.styles";
 
 const CollaborationOverlay = dynamic<CollaborationOverlayProps>(
   () => import("@/components/collaboration-overlay"),
   { ssr: false },
 );
-
-const SIDEBAR_WIDTH = 260;
-
-const Layout = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-`;
-
-const HeaderBar = styled.header<{ $collabHidden?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${({ $collabHidden }) => ($collabHidden ? 0 : theme.spacing.xs)};
-  height: ${({ $collabHidden }) => ($collabHidden ? 0 : 64)}px;
-  min-height: 0;
-  border-bottom: ${({ $collabHidden }) =>
-    $collabHidden ? "none" : "1px solid #e0e0e0"};
-  background: #fff;
-  flex-shrink: 0;
-  z-index: 10;
-  overflow: hidden;
-  transition:
-    height 0.25s ease,
-    padding 0.25s ease,
-    border-width 0.25s ease;
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const ToggleButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 6px;
-  color: #666;
-  font-size: 18px;
-
-  &:hover {
-    background: #f0f0f0;
-  }
-`;
-
-const Logo = styled(Link)`
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  text-decoration: none;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const AvatarMenu = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 6px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 30;
-  min-width: 160px;
-  overflow: hidden;
-  padding: 4px 0;
-`;
-
-const AvatarMenuName = styled.div`
-  padding: 10px 14px 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-`;
-
-const AvatarMenuEmail = styled.div`
-  padding: 0 14px 8px;
-  font-size: 11px;
-  color: #999;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 4px;
-`;
-
-const AvatarMenuItem = styled.button`
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  font-size: 13px;
-  text-align: left;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: #333;
-
-  &:hover {
-    background: #f5f5f5;
-  }
-`;
-
-const Body = styled.div`
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-`;
-
-const Sidebar = styled.aside<{ $collapsed: boolean }>`
-  width: ${({ $collapsed }) => ($collapsed ? 0 : SIDEBAR_WIDTH)}px;
-  min-width: ${({ $collapsed }) => ($collapsed ? 0 : SIDEBAR_WIDTH)}px;
-  border-right: ${({ $collapsed }) =>
-    $collapsed ? "none" : "1px solid #e0e0e0"};
-  background: #fafafa;
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition:
-    width 0.25s ease,
-    min-width 0.25s ease,
-    border-width 0.25s ease;
-  flex-shrink: 0;
-`;
-
-const SidebarContent = styled.div`
-  padding: 16px 0;
-`;
-
-const PersonGroup = styled.div`
-  margin-bottom: 8px;
-`;
-
-const PersonLabel = styled.div`
-  padding: 6px 16px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const NavLink = styled(Link)<{ $active: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 32px 7px 24px;
-  font-size: 13px;
-  color: ${({ $active }) => ($active ? "#1a73e8" : "#333")};
-  background: ${({ $active }) => ($active ? "#e8f0fe" : "transparent")};
-  text-decoration: none;
-  transition: background 0.1s ease;
-  flex: 1;
-  min-width: 0;
-
-  &:hover {
-    background: ${({ $active }) => ($active ? "#e8f0fe" : "#f0f0f0")};
-  }
-`;
-
-const TypeBadge = styled.span`
-  font-size: 10px;
-  color: #999;
-  text-transform: uppercase;
-  margin-left: auto;
-  letter-spacing: 0.3px;
-`;
-
-const NavItemRow = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  &:hover .nav-menu-btn {
-    opacity: 1;
-  }
-`;
-
-const MenuBtn = styled.button`
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #999;
-  opacity: 0;
-  transition: opacity 0.1s ease;
-  z-index: 1;
-
-  &:hover {
-    background: #e0e0e0;
-    color: #333;
-  }
-`;
-
-const ContextMenu = styled.div`
-  position: absolute;
-  right: 4px;
-  top: 100%;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 20;
-  min-width: 120px;
-  overflow: hidden;
-`;
-
-const MenuItem = styled.button<{ $danger?: boolean }>`
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  font-size: 13px;
-  text-align: left;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: ${({ $danger }) => ($danger ? "#c62828" : "#333")};
-
-  &:hover {
-    background: ${({ $danger }) => ($danger ? "#fce8e6" : "#f5f5f5")};
-  }
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-`;
-
-const Dialog = styled.div`
-  background: #fff;
-  border-radius: 10px;
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-`;
-
-const DialogTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-`;
-
-const DialogText = styled.p`
-  font-size: 14px;
-  color: #666;
-  line-height: 1.5;
-  margin-bottom: 20px;
-`;
-
-const DialogActions = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-`;
-
-const DialogBtn = styled.button<{ $danger?: boolean }>`
-  padding: 8px 18px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 5px;
-  border: 1px solid ${({ $danger }) => ($danger ? "#c62828" : "#ddd")};
-  background: ${({ $danger }) => ($danger ? "#c62828" : "#fff")};
-  color: ${({ $danger }) => ($danger ? "#fff" : "#333")};
-  cursor: pointer;
-
-  &:hover {
-    background: ${({ $danger }) => ($danger ? "#b71c1c" : "#f5f5f5")};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const MainContent = styled.main`
-  flex: 1;
-  overflow-y: auto;
-  background: #fff;
-  position: relative;
-`;
-
-const HEADER_HEIGHT = 64;
-
-const CollaborationOverlayWrapper = styled.div`
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 0;
-  flex-shrink: 0;
-  z-index: 4;
-  pointer-events: none;
-  overflow: visible;
-`;
-
-const CollaborationOverlayViewport = styled.div<{ $fullHeight?: boolean }>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: ${({ $fullHeight }) =>
-    $fullHeight ? "100vh" : `calc(100vh - ${HEADER_HEIGHT}px)`};
-`;
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -363,73 +29,13 @@ function CollaborationOverlayWithScroll({
   onOpenChange,
 }: CollaborationOverlayProps) {
   return (
-    <CollaborationOverlayViewport $fullHeight={open}>
+    <Styled.CollaborationOverlayViewport $fullHeight={open}>
       <CollaborationOverlay
         roomId={roomId}
         open={open}
         onOpenChange={onOpenChange}
       />
-    </CollaborationOverlayViewport>
-  );
-}
-
-function formatSlug(slug: string): string {
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function personFromEmail(email: string): string {
-  const local = email.split("@")[0].toLowerCase();
-  if (local.includes(".")) {
-    const parts = local.split(".");
-    return (parts[0][0] + parts.slice(1).join("")).replace(/[^a-z0-9]/g, "");
-  }
-  return local.replace(/[^a-z0-9]/g, "");
-}
-
-function UserMenu() {
-  const { data: session, status } = useSession();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
-
-  const initials =
-    status === "authenticated" && session?.user?.name
-      ? session.user.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .slice(0, 2)
-      : "\u00A0";
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <IconButton
-        onClick={() => status === "authenticated" && setOpen(!open)}
-        size="small"
-      >
-        <Avatar>{initials}</Avatar>
-      </IconButton>
-      {open && session?.user && (
-        <AvatarMenu>
-          {session.user.name && (
-            <AvatarMenuName>{session.user.name}</AvatarMenuName>
-          )}
-          {session.user.email && (
-            <AvatarMenuEmail>{session.user.email}</AvatarMenuEmail>
-          )}
-          <AvatarMenuItem onClick={() => signOut()}>Logout</AvatarMenuItem>
-        </AvatarMenu>
-      )}
-    </div>
+    </Styled.CollaborationOverlayViewport>
   );
 }
 
@@ -445,12 +51,25 @@ export default function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const { data: session } = useSession();
 
-  useEffect(() => {
+  const refetchPrototypes = useCallback(() => {
     fetch("/api/prototypes")
-      .then((res) => res.json())
-      .then((data) => setEntries(data))
-      .catch(() => {});
+      .then((res) => {
+        if (!res.ok) {
+          setEntries([]);
+          return;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) setEntries(data);
+        else setEntries([]);
+      })
+      .catch(() => setEntries([]));
   }, []);
+
+  useEffect(() => {
+    refetchPrototypes();
+  }, [refetchPrototypes, pathname]);
 
   const currentPerson = session?.user?.email
     ? personFromEmail(session.user.email)
@@ -487,8 +106,8 @@ export default function AppShell({ children }: AppShellProps) {
         return;
       }
       setDeleteTarget(null);
+      refetchPrototypes();
       router.push("/");
-      window.location.reload();
     } catch {
       alert("Network error. Please try again.");
     } finally {
@@ -501,16 +120,16 @@ export default function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <Layout>
-      <HeaderBar $collabHidden={overlayOpen}>
-        <HeaderLeft>
-          <ToggleButton onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? "\u2630" : "\u2630"}
-          </ToggleButton>
-          <Logo href="/">Prototype Playground</Logo>
-        </HeaderLeft>
+    <Styled.Layout>
+      <Styled.HeaderBar $collabHidden={overlayOpen}>
+        <Styled.HeaderLeft>
+          <Styled.ToggleButton onClick={() => setCollapsed(!collapsed)}>
+            <ListIcon size={18} weight="bold" />
+          </Styled.ToggleButton>
+          <Styled.Logo href="/">Prototype Playground</Styled.Logo>
+        </Styled.HeaderLeft>
 
-        <HeaderRight>
+        <Styled.HeaderRight>
           <Button
             variant="contained"
             href="/publish"
@@ -520,23 +139,23 @@ export default function AppShell({ children }: AppShellProps) {
           </Button>
 
           <UserMenu />
-        </HeaderRight>
-      </HeaderBar>
+        </Styled.HeaderRight>
+      </Styled.HeaderBar>
 
-      <Body>
-        <Sidebar $collapsed={collapsed || overlayOpen}>
-          <SidebarContent>
+      <Styled.Body>
+        <Styled.Sidebar $collapsed={collapsed || overlayOpen}>
+          <Styled.SidebarContent>
             {entries.map(([person, prototypes]) => (
-              <PersonGroup key={person}>
-                <PersonLabel>{person}</PersonLabel>
+              <Styled.PersonGroup key={person}>
+                <Styled.PersonLabel>{person}</Styled.PersonLabel>
                 {prototypes.map((proto) => {
                   const isOwned =
                     proto.type === "html" && proto.person === currentPerson;
                   const menuKey = `${proto.person}/${proto.slug}`;
 
                   return (
-                    <NavItemRow key={proto.href}>
-                      <NavLink
+                    <Styled.NavItemRow key={proto.href}>
+                      <Styled.NavLink
                         href={proto.href}
                         $active={
                           pathname === proto.href ||
@@ -544,14 +163,13 @@ export default function AppShell({ children }: AppShellProps) {
                         }
                       >
                         {proto.name || formatSlug(proto.slug)}
-                        <TypeBadge>{proto.type}</TypeBadge>
-                      </NavLink>
+                        <Styled.TypeBadge>{proto.type}</Styled.TypeBadge>
+                      </Styled.NavLink>
                       {isOwned && (
-                        <div
+                        <Styled.MenuButtonWrap
                           ref={openMenu === menuKey ? menuRef : null}
-                          style={{ position: "relative" }}
                         >
-                          <MenuBtn
+                          <Styled.MenuBtn
                             className="nav-menu-btn"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -561,10 +179,10 @@ export default function AppShell({ children }: AppShellProps) {
                             }}
                           >
                             &#8943;
-                          </MenuBtn>
+                          </Styled.MenuBtn>
                           {openMenu === menuKey && (
-                            <ContextMenu>
-                              <MenuItem
+                            <Styled.ContextMenu>
+                              <Styled.MenuItem
                                 onClick={() => {
                                   setOpenMenu(null);
                                   router.push(
@@ -573,8 +191,8 @@ export default function AppShell({ children }: AppShellProps) {
                                 }}
                               >
                                 Edit
-                              </MenuItem>
-                              <MenuItem
+                              </Styled.MenuItem>
+                              <Styled.MenuItem
                                 $danger
                                 onClick={() => {
                                   setOpenMenu(null);
@@ -582,59 +200,57 @@ export default function AppShell({ children }: AppShellProps) {
                                 }}
                               >
                                 Delete
-                              </MenuItem>
-                            </ContextMenu>
+                              </Styled.MenuItem>
+                            </Styled.ContextMenu>
                           )}
-                        </div>
+                        </Styled.MenuButtonWrap>
                       )}
-                    </NavItemRow>
+                    </Styled.NavItemRow>
                   );
                 })}
-              </PersonGroup>
+              </Styled.PersonGroup>
             ))}
-          </SidebarContent>
-        </Sidebar>
-        <MainContent>
+          </Styled.SidebarContent>
+        </Styled.Sidebar>
+        <Styled.MainContent>
           <PrototypeScrollProvider>
             {isPrototypePage && (
-              <CollaborationOverlayWrapper>
+              <Styled.CollaborationOverlayWrapper>
                 <CollaborationOverlayWithScroll
                   roomId={`prototype-${pathname.replace(/\//g, "-").replace(/^-|-$/g, "")}`}
                   open={overlayOpen}
                   onOpenChange={setOverlayOpen}
                 />
-              </CollaborationOverlayWrapper>
+              </Styled.CollaborationOverlayWrapper>
             )}
             {children}
           </PrototypeScrollProvider>
-        </MainContent>
-      </Body>
+        </Styled.MainContent>
+      </Styled.Body>
 
-      {deleteTarget && (
-        <Overlay onClick={() => !deleting && setDeleteTarget(null)}>
-          <Dialog onClick={(e) => e.stopPropagation()}>
-            <DialogTitle>Delete prototype?</DialogTitle>
-            <DialogText>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete prototype?"
+        message={
+          deleteTarget ? (
+            <>
               Are you sure you want to delete{" "}
               <strong>
                 {deleteTarget.name || formatSlug(deleteTarget.slug)}
               </strong>
               ? This will remove it from the repository and cannot be undone.
-            </DialogText>
-            <DialogActions>
-              <DialogBtn
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleting}
-              >
-                Cancel
-              </DialogBtn>
-              <DialogBtn $danger onClick={handleDelete} disabled={deleting}>
-                {deleting ? "Deleting..." : "Delete"}
-              </DialogBtn>
-            </DialogActions>
-          </Dialog>
-        </Overlay>
-      )}
-    </Layout>
+            </>
+          ) : (
+            ""
+          )
+        }
+        confirmLabel="Delete"
+        loadingLabel="Deleting..."
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => !deleting && setDeleteTarget(null)}
+      />
+    </Styled.Layout>
   );
 }
