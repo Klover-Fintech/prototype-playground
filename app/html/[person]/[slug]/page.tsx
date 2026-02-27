@@ -27,10 +27,12 @@ export default function HtmlPrototypePage() {
     const iframe = frameRef.current;
     if (!iframe) return;
 
-    let cleanup: (() => void) | undefined;
+    const cleanupRef = { current: undefined as (() => void) | undefined };
 
     const onLoad = () => {
       try {
+        cleanupRef.current?.();
+
         const win = iframe.contentWindow;
         const doc = iframe.contentDocument;
         if (!win || !doc) return;
@@ -59,7 +61,7 @@ export default function HtmlPrototypePage() {
         });
         setScrollTop(getScrollTop());
 
-        cleanup = () =>
+        cleanupRef.current = () =>
           doc.removeEventListener("scroll", onScroll, { capture: true });
       } catch {
         // cross-origin or not yet loaded
@@ -70,7 +72,7 @@ export default function HtmlPrototypePage() {
     if (iframe.contentWindow) onLoad();
     return () => {
       iframe.removeEventListener("load", onLoad);
-      cleanup?.();
+      cleanupRef.current?.();
     };
   }, [setScrollTop]);
 

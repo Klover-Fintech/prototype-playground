@@ -186,7 +186,7 @@ export default function AppShell({ children }: AppShellProps) {
                                 onClick={() => {
                                   setOpenMenu(null);
                                   router.push(
-                                    `/publish?person=${proto.person}&slug=${proto.slug}`,
+                                    `/publish?person=${encodeURIComponent(proto.person)}&slug=${encodeURIComponent(proto.slug)}`,
                                   );
                                 }}
                               >

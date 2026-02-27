@@ -37,14 +37,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.json();
-  const { name, displayName, html, collaborative, oldSlug } = body as {
+  let body: {
     name: string;
     displayName?: string;
     html: string;
     collaborative?: boolean;
     oldSlug?: string;
   };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { name, displayName, html, collaborative, oldSlug } = body;
 
   if (!name || !html) {
     return NextResponse.json(

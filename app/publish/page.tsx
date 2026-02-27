@@ -76,7 +76,9 @@ function PublishPageContent() {
 
   useEffect(() => {
     if (!isEditMode) return;
-    fetch(`/api/publish/${editPerson}/${editSlug}`)
+    fetch(
+      `/api/publish/${encodeURIComponent(editPerson!)}/${encodeURIComponent(editSlug!)}`,
+    )
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load prototype");
         return res.json();

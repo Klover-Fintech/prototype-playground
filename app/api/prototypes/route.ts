@@ -7,13 +7,16 @@ const GITHUB_BRANCH = process.env.GITHUB_BRANCH ?? "master";
 
 async function ghFetch(endpoint: string) {
   const token = process.env.GITHUB_TOKEN;
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return fetch(
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}${endpoint}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-      },
+      headers,
       next: { revalidate: 30 },
     },
   );

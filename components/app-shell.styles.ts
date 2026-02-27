@@ -16,7 +16,7 @@ export const HeaderBar = styled.header<{ $collabHidden?: boolean }>`
   align-items: center;
   justify-content: space-between;
   padding: ${({ $collabHidden }) => ($collabHidden ? 0 : theme.spacing.xs)};
-  height: ${({ $collabHidden }) => ($collabHidden ? 0 : 64)}px;
+  height: ${({ $collabHidden }) => ($collabHidden ? 0 : HEADER_HEIGHT)}px;
   min-height: 0;
   border-bottom: ${({ $collabHidden }) =>
     $collabHidden ? "none" : "1px solid #e0e0e0"};

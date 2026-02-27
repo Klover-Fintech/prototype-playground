@@ -103,6 +103,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   }
 
   const filePath = `public/prototypes/${person}/${slug}/index.html`;
+  const metaPath = `public/prototypes/${person}/${slug}/meta.json`;
 
   const checkRes = await fetch(
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`,
@@ -142,6 +143,36 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Failed to delete", details: error },
       { status: deleteRes.status },
+    );
+  }
+
+  const metaCheckRes = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${metaPath}?ref=${GITHUB_BRANCH}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    },
+  );
+  const metaExisting = metaCheckRes.ok ? await metaCheckRes.json() : null;
+
+  if (metaExisting?.sha) {
+    await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${metaPath}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: `Delete prototype metadata: ${person}/${slug}`,
+          sha: metaExisting.sha,
+          branch: GITHUB_BRANCH,
+        }),
+      },
     );
   }
 
