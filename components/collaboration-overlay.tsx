@@ -81,6 +81,14 @@ function CollaborativeTldraw({
         autoFocus
         onMount={onMount.current}
         licenseKey={licenseKey}
+        components={{
+          ZoomMenu: null,
+          Minimap: null,
+          TopPanel: null,
+          PageMenu: null,
+          ActionsMenu: null,
+          HelpMenu: null,
+        }}
       />
     </WhiteboardPanel>
   );

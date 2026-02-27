@@ -30,16 +30,23 @@ const Layout = styled.div`
   height: 100vh;
 `;
 
-const HeaderBar = styled.header`
+const HeaderBar = styled.header<{ $collabHidden?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${theme.spacing.xs};
-  height: 64px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: ${({ $collabHidden }) => ($collabHidden ? 0 : theme.spacing.xs)};
+  height: ${({ $collabHidden }) => ($collabHidden ? 0 : 64)}px;
+  min-height: 0;
+  border-bottom: ${({ $collabHidden }) =>
+    $collabHidden ? "none" : "1px solid #e0e0e0"};
   background: #fff;
   flex-shrink: 0;
   z-index: 10;
+  overflow: hidden;
+  transition:
+    height 0.25s ease,
+    padding 0.25s ease,
+    border-width 0.25s ease;
 `;
 
 const HeaderLeft = styled.div`
@@ -140,8 +147,9 @@ const Sidebar = styled.aside<{ $collapsed: boolean }>`
   overflow-y: auto;
   overflow-x: hidden;
   transition:
-    width 0.2s ease,
-    min-width 0.2s ease;
+    width 0.25s ease,
+    min-width 0.25s ease,
+    border-width 0.25s ease;
   flex-shrink: 0;
 `;
 
@@ -336,12 +344,13 @@ const CollaborationOverlayWrapper = styled.div`
   overflow: visible;
 `;
 
-const CollaborationOverlayViewport = styled.div`
+const CollaborationOverlayViewport = styled.div<{ $fullHeight?: boolean }>`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: calc(100vh - ${HEADER_HEIGHT}px);
+  height: ${({ $fullHeight }) =>
+    $fullHeight ? "100vh" : `calc(100vh - ${HEADER_HEIGHT}px)`};
 `;
 
 interface AppShellProps {
@@ -354,7 +363,7 @@ function CollaborationOverlayWithScroll({
   onOpenChange,
 }: CollaborationOverlayProps) {
   return (
-    <CollaborationOverlayViewport>
+    <CollaborationOverlayViewport $fullHeight={open}>
       <CollaborationOverlay
         roomId={roomId}
         open={open}
@@ -493,7 +502,7 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <Layout>
-      <HeaderBar>
+      <HeaderBar $collabHidden={overlayOpen}>
         <HeaderLeft>
           <ToggleButton onClick={() => setCollapsed(!collapsed)}>
             {collapsed ? "\u2630" : "\u2630"}
@@ -515,7 +524,7 @@ export default function AppShell({ children }: AppShellProps) {
       </HeaderBar>
 
       <Body>
-        <Sidebar $collapsed={collapsed}>
+        <Sidebar $collapsed={collapsed || overlayOpen}>
           <SidebarContent>
             {entries.map(([person, prototypes]) => (
               <PersonGroup key={person}>
