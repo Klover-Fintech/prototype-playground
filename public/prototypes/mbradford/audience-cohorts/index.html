@@ -1,0 +1,549 @@
+import { useState } from "react";
+
+// ‚îÄ‚îÄ OutcomeHQ Design Tokens ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+const T = {
+  bg: "#F4F4F8",
+  white: "#FFFFFF",
+  navy: "#2B2A5A",
+  navyLight: "#3D3C6E",
+  purple: "#6C5CE7",
+  purpleLight: "#EEF0FD",
+  purpleBorder: "#D4D0F7",
+  text: "#1A1A2E",
+  textMid: "#555577",
+  textMuted: "#9090AA",
+  border: "#E4E4EE",
+  green: "#22C55E",
+  greenLight: "#F0FDF4",
+  red: "#EF4444",
+  redLight: "#FEF2F2",
+  amber: "#F59E0B",
+  amberLight: "#FFFBEB",
+  blue: "#3B82F6",
+  blueLight: "#EFF6FF",
+  pink: "#EC4899",
+  pinkLight: "#FDF2F8",
+  teal: "#14B8A6",
+  tealLight: "#F0FDFA",
+};
+
+const segColors = {
+  loyal:    { main: "#6C5CE7", light: "#EEF0FD", border: "#C4BEFA" },
+  occasion: { main: "#3B82F6", light: "#EFF6FF", border: "#BFDBFE" },
+  light:    { main: "#F59E0B", light: "#FFFBEB", border: "#FDE68A" },
+  lapsed:   { main: "#EF4444", light: "#FEF2F2", border: "#FECACA" },
+  new:      { main: "#14B8A6", light: "#F0FDFA", border: "#99F6E4" },
+  nonbuyer: { main: "#EC4899", light: "#FDF2F8", border: "#FBCFE8" },
+};
+
+const cohorts = [
+  {
+    id: "loyal", label: "Loyal & High-Value Buyers", badge: "Retained",
+    pct: 18, users: "8‚Äì10MM", avgFreq: "12.4x", avgSpend: "$284", sow: "61%",
+    tooltip: "These customers purchase frequently, have shopped recently, and contribute significantly to total sales.",
+    switching: null,
+  },
+  {
+    id: "occasion", label: "Occasion-Based Buyers", badge: "Retained",
+    pct: 24, users: "14‚Äì17MM", avgFreq: "4.2x", avgSpend: "$118", sow: "38%",
+    tooltip: "These customers purchase with moderate frequency and recent activity, often driven by specific needs, events, or seasons.",
+    switching: null,
+  },
+  {
+    id: "light", label: "Light & Infrequent Buyers", badge: "At Risk",
+    pct: 21, users: "12‚Äì15MM", avgFreq: "1.8x", avgSpend: "$44", sow: "19%",
+    tooltip: "These customers purchase occasionally or irregularly, with lower overall frequency and recency.",
+    switching: null,
+  },
+  {
+    id: "lapsed", label: "Lapsed & Lapsing Buyers", badge: "Lapsed",
+    pct: 17, users: "9‚Äì12MM", daysSince: "127 days", priorSpend: "$76", sow: "12%",
+    tooltip: "These customers made purchases earlier in the timeframe but have not purchased recently, indicating a decline in activity.",
+    switching: [
+      { label: "Mountain Dew", pct: 34, color: "#6C5CE7" },
+      { label: "Pepsi",        pct: 22, color: "#3B82F6" },
+      { label: "Dr Pepper",    pct: 14, color: "#14B8A6" },
+      { label: "Other in Category", pct: 18, color: "#F59E0B" },
+      { label: "Left Category", pct: 12, color: "#CBD5E1" },
+    ],
+  },
+  {
+    id: "new", label: "New-to-Market Buyers", badge: "New",
+    pct: 11, users: "5‚Äì7MM", catFreq: "2.1x", catSpend: "$62", sow: "22%",
+    tooltip: "These customers made purchases in the latter half of the timeframe but not earlier, representing newly acquired buyers.",
+    switching: null,
+  },
+  {
+    id: "nonbuyer", label: "Category & Competitor Buyers", badge: "Conquest",
+    pct: 9, users: "4‚Äì6MM", catFreq: "3.7x", catSpend: "$91", sow: "0%",
+    tooltip: "These customers have not purchased from the brand within the timeframe but show recent activity within the broader category.",
+    switching: null,
+  },
+];
+
+// ‚îÄ‚îÄ Sub-components ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+
+function Badge({ label, color = T.purple, bg = T.purpleLight, border = T.purpleBorder }) {
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, letterSpacing: "0.05em",
+      textTransform: "uppercase", padding: "2px 7px", borderRadius: 4,
+      color, background: bg, border: `1px solid ${border}`,
+      whiteSpace: "nowrap",
+    }}>{label}</span>
+  );
+}
+
+function BadgeForSegment({ id, label }) {
+  const map = {
+    Retained: { color: T.green,  bg: T.greenLight, border: "#BBF7D0" },
+    Lapsed:   { color: T.red,    bg: T.redLight,   border: "#FECACA" },
+    "At Risk":{ color: T.amber,  bg: T.amberLight, border: "#FDE68A" },
+    New:      { color: T.teal,   bg: T.tealLight,  border: "#99F6E4" },
+    Conquest: { color: T.pink,   bg: T.pinkLight,  border: "#FBCFE8" },
+  };
+  const s = map[label] || {};
+  return <Badge label={label} {...s} />;
+}
+
+function StatChip({ label, value }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: 2,
+      padding: "6px 10px", borderRadius: 6,
+      background: T.bg, border: `1px solid ${T.border}`,
+    }}>
+      <span style={{ fontSize: 10, color: T.textMuted, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
+      <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
+function StackedBar({ cohorts }) {
+  return (
+    <div style={{ display: "flex", height: 8, borderRadius: 6, overflow: "hidden", gap: 2 }}>
+      {cohorts.map(c => (
+        <div key={c.id} title={`${c.label} ${c.pct}%`}
+          style={{ flex: c.pct, background: segColors[c.id].main, borderRadius: 2 }} />
+      ))}
+    </div>
+  );
+}
+
+function SwitchingStrip({ destinations }) {
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: T.textMid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Where lapsed buyers went
+        </span>
+        <span style={{ fontSize: 11, color: T.textMuted }}>Stage 2 ¬∑ Switching Analysis</span>
+      </div>
+      <div style={{ display: "flex", height: 6, borderRadius: 4, overflow: "hidden", gap: 2, marginBottom: 10 }}>
+        {destinations.map(d => (
+          <div key={d.label} style={{ flex: d.pct, background: d.color, borderRadius: 2 }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+        {destinations.map(d => (
+          <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: T.textMid }}>{d.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: T.text }}>{d.pct}%</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button style={{
+          fontSize: 11, fontWeight: 500, padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+          background: T.purple, color: T.white, border: "none",
+        }}>
+          Build Win-Back Audience
+        </button>
+        <button style={{
+          fontSize: 11, fontWeight: 500, padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+          background: T.white, color: T.textMid, border: `1px solid ${T.border}`,
+        }}>
+          Export CSV
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CohortCard({ c, expanded, onToggle }) {
+  const col = segColors[c.id];
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        background: T.white,
+        border: `1px solid ${expanded ? col.border : T.border}`,
+        borderRadius: 10,
+        padding: "16px 18px",
+        cursor: "pointer",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+        boxShadow: expanded ? `0 0 0 3px ${col.border}55` : "0 1px 3px rgba(0,0,0,0.04)",
+        position: "relative",
+      }}
+    >
+      {/* Top accent line when expanded */}
+      <div style={{
+        position: "absolute", top: 0, left: 16, right: 16, height: 2,
+        borderRadius: "0 0 2px 2px",
+        background: expanded ? col.main : "transparent",
+        transition: "background 0.15s",
+      }} />
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <BadgeForSegment id={c.id} label={c.badge} />
+            {c.switching && (
+              <Badge label="‚Ü≥ Switching" color={T.red} bg={T.redLight} border="#FECACA" />
+            )}
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: T.text, lineHeight: 1.3 }}>{c.label}</span>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: col.main, lineHeight: 1 }}>{c.pct}%</div>
+          <div style={{ fontSize: 10, color: T.textMuted, marginTop: 2 }}>of audience</div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p style={{ margin: "0 0 12px", fontSize: 12, color: T.textMuted, lineHeight: 1.5 }}>{c.tooltip}</p>
+
+      {/* Metrics */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <StatChip label="Est. Audience" value={c.users} />
+        {c.avgFreq    && <StatChip label="Avg Frequency" value={c.avgFreq} />}
+        {c.avgSpend   && <StatChip label="Avg Spend" value={c.avgSpend} />}
+        {c.daysSince  && <StatChip label="Days Since Purchase" value={c.daysSince} />}
+        {c.priorSpend && <StatChip label="Prior Avg Spend" value={c.priorSpend} />}
+        {c.catFreq    && <StatChip label="Cat. Frequency" value={c.catFreq} />}
+        {c.catSpend   && <StatChip label="Cat. Spend" value={c.catSpend} />}
+        <StatChip label="Share of Wallet" value={c.sow} />
+      </div>
+
+      {/* Switching panel */}
+      {expanded && c.switching && <SwitchingStrip destinations={c.switching} />}
+
+      {/* Footer actions */}
+      <div style={{ marginTop: 12, display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+        <button style={{
+          fontSize: 11, fontWeight: 500, padding: "5px 11px", borderRadius: 6, cursor: "pointer",
+          background: T.purpleLight, color: T.purple, border: `1px solid ${T.purpleBorder}`,
+        }}>
+          + Save as Audience
+        </button>
+        <button style={{
+          fontSize: 11, fontWeight: 500, padding: "5px 11px", borderRadius: 6, cursor: "pointer",
+          background: T.white, color: T.textMuted, border: `1px solid ${T.border}`,
+        }}>
+          View Demographics
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InsightBanner() {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "12px 16px", borderRadius: 8, marginBottom: 18,
+      background: T.redLight, border: `1px solid #FECACA`,
+    }}>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <span style={{ fontSize: 16 }}>‚ö†</span>
+      </div>
+      <div style={{ flex: 1 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: T.red }}>17% of buyers have lapsed. </span>
+        <span style={{ fontSize: 12, color: T.textMid }}>34% switched to a direct competitor in the recent window. Expand the Lapsed card to explore switching destinations and build a win-back audience.</span>
+      </div>
+      <button style={{
+        fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 6, cursor: "pointer",
+        background: T.red, color: T.white, border: "none", whiteSpace: "nowrap",
+      }}>
+        View Leakage ‚Üí
+      </button>
+    </div>
+  );
+}
+
+// ‚îÄ‚îÄ Switching full tab ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+function SwitchingTab() {
+  const dest = cohorts.find(c => c.id === "lapsed").switching;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Stage flow */}
+      <div style={{
+        background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: "18px 20px",
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 4 }}>
+          New / Lapsed / Retained ‚Üí Switching
+        </div>
+        <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 18 }}>
+          Stage 1 classifies all buyers. Stage 2 analyzes where lapsed buyers went in the recent window.
+        </div>
+
+        {/* Stage pills */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+          {[
+            { label: "Retained", pct: "62%", color: T.green, bg: T.greenLight, border: "#BBF7D0" },
+            { label: "New to Brand", pct: "21%", color: T.teal, bg: T.tealLight, border: "#99F6E4" },
+            { label: "Lapsed", pct: "17%", color: T.red, bg: T.redLight, border: "#FECACA" },
+          ].map((s, i) => (
+            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {i > 0 && <span style={{ color: T.textMuted, fontSize: 16 }}>+</span>}
+              <div style={{
+                padding: "10px 18px", borderRadius: 8,
+                background: s.bg, border: `1px solid ${s.border}`,
+                display: "flex", flexDirection: "column", gap: 2, minWidth: 120,
+              }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: s.color, textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.pct}</span>
+                <span style={{ fontSize: 10, color: T.textMuted }}>of total buyers</span>
+              </div>
+            </div>
+          ))}
+          <span style={{ color: T.textMuted, fontSize: 16, marginLeft: 4 }}>= 100%</span>
+        </div>
+
+        {/* Lapsed ‚Üí switching */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{
+            padding: "10px 14px", borderRadius: 8, background: T.redLight,
+            border: `1px solid #FECACA`, minWidth: 110, textAlign: "center",
+          }}>
+            <div style={{ fontSize: 10, color: T.red, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Lapsed Pool</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: T.red }}>9.8MM</div>
+            <div style={{ fontSize: 10, color: T.textMuted }}>buyers</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", color: T.textMuted, fontSize: 18, marginTop: 14 }}>‚Üí</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 8, display: "flex", borderRadius: 6, overflow: "hidden", gap: 2, marginBottom: 10 }}>
+              {dest.map(d => (
+                <div key={d.label} style={{ flex: d.pct, background: d.color }} />
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {dest.map(d => (
+                <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: T.textMid, flex: 1 }}>{d.label}</span>
+                  <div style={{ width: 160, height: 6, background: T.bg, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: `${d.pct * 2.5}%`, height: "100%", background: d.color, borderRadius: 3 }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: T.text, minWidth: 30, textAlign: "right" }}>{d.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Methodology note */}
+      <div style={{
+        background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: "16px 20px",
+        fontSize: 12, color: T.textMuted, lineHeight: 1.6,
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 6 }}>Methodology</div>
+        Switching flags are <strong style={{ color: T.text }}>non-exclusive</strong> ‚Äî a lapsed buyer can appear in multiple competitor buckets if they transacted with more than one. <strong style={{ color: T.text }}>"Left Category"</strong> requires all competitor flags = 0. Percentages reflect each competitor's share of the weighted switcher pool and sum to 100%. Queries use <code style={{ background: T.bg, padding: "1px 4px", borderRadius: 3 }}>bp.tranche = 'a'</code> for census-balanced weighting.
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button style={{ fontSize: 12, fontWeight: 500, padding: "8px 16px", borderRadius: 6, cursor: "pointer", background: T.purple, color: T.white, border: "none" }}>
+          Build Win-Back Audience
+        </button>
+        <button style={{ fontSize: 12, fontWeight: 500, padding: "8px 16px", borderRadius: 6, cursor: "pointer", background: T.white, color: T.textMid, border: `1px solid ${T.border}` }}>
+          Export Full Switching Table
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ‚îÄ‚îÄ Main App ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+export default function App() {
+  const [tab, setTab] = useState("cohorts");
+  const [expanded, setExpanded] = useState(null);
+
+  const tabs = [
+    { id: "cohorts",    label: "Loyalty Cohorts" },
+    { id: "switching",  label: "Lapsed Switching" },
+    { id: "methodology",label: "Methodology" },
+  ];
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #F4F4F8; }
+        button { font-family: 'Inter', sans-serif; transition: opacity 0.1s; }
+        button:hover { opacity: 0.85; }
+      `}</style>
+
+      {/* Simulated page chrome */}
+      <div style={{ display: "flex", height: "100vh", background: T.bg, overflow: "hidden" }}>
+
+        {/* Left nav */}
+        <div style={{ width: 52, background: T.navy, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 14, gap: 4, flexShrink: 0 }}>
+          {/* Logo mark */}
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: T.purple, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <span style={{ color: T.white, fontSize: 12, fontWeight: 700 }}>OQ</span>
+          </div>
+          {["‚äû", "üìä", "üìà", "üéØ", "‚≠ê"].map((icon, i) => (
+            <div key={i} style={{
+              width: 36, height: 36, borderRadius: 8, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 15, cursor: "pointer",
+              background: i === 1 ? T.navyLight : "transparent", color: i === 1 ? T.white : "#9090CC",
+            }}>{icon}</div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* Top bar */}
+          <div style={{
+            height: 52, background: T.white, borderBottom: `1px solid ${T.border}`,
+            display: "flex", alignItems: "center", padding: "0 20px", gap: 12, flexShrink: 0,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+              {/* Brand logo placeholder */}
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: T.white, fontSize: 10, fontWeight: 700 }}>CC</span>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 600, color: T.text }}>Coca-Cola</span>
+              <span style={{ fontSize: 11, color: T.green, background: T.greenLight, border: "1px solid #BBF7D0", borderRadius: 4, padding: "2px 7px", fontWeight: 500 }}>
+                ‚úì Great for Insights
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={{ fontSize: 12, fontWeight: 500, padding: "6px 14px", borderRadius: 6, cursor: "pointer", background: T.white, color: T.textMid, border: `1px solid ${T.border}` }}>
+                AI Summary
+              </button>
+              <button style={{ fontSize: 12, fontWeight: 500, padding: "6px 14px", borderRadius: 6, cursor: "pointer", background: T.navy, color: T.white, border: "none" }}>
+                Compare insights
+              </button>
+            </div>
+          </div>
+
+          {/* Scroll area */}
+          <div style={{ flex: 1, overflow: "auto", padding: "20px 24px" }}>
+
+            {/* Card */}
+            <div style={{
+              background: T.white, border: `1px solid ${T.border}`, borderRadius: 12,
+              padding: "20px 24px",
+            }}>
+              {/* Card header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: T.text }}>Buyer Loyalty & Lifecycle</span>
+                    <Badge label="BETA" color={T.purple} bg={T.purpleLight} border={T.purpleBorder} />
+                  </div>
+                  <p style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.5, maxWidth: 600 }}>
+                    Segment buyers by loyalty intensity and track lifecycle movement. Click <strong>Lapsed & Lapsing</strong> to reveal where churned buyers went ‚Äî and build targeted win-back audiences.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  {["PDF", "PNG", "CSV"].map(f => (
+                    <button key={f} style={{ fontSize: 11, fontWeight: 500, padding: "5px 10px", borderRadius: 5, cursor: "pointer", background: T.white, color: T.textMuted, border: `1px solid ${T.border}` }}>
+                      ‚Üì {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Underline tabs */}
+              <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${T.border}`, marginBottom: 20, marginTop: 16 }}>
+                {tabs.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    style={{
+                      fontSize: 13, fontWeight: tab === t.id ? 600 : 400,
+                      color: tab === t.id ? T.navy : T.textMuted,
+                      background: "none", border: "none",
+                      borderBottom: tab === t.id ? `2px solid ${T.navy}` : "2px solid transparent",
+                      padding: "8px 16px", cursor: "pointer",
+                      marginBottom: -1, transition: "all 0.15s",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Cohorts tab */}
+              {tab === "cohorts" && (
+                <>
+                  <InsightBanner />
+
+                  {/* Composition bar */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: T.textMuted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Audience Composition
+                      </span>
+                      <span style={{ fontSize: 11, color: T.textMuted }}>~55‚Äì67MM total buyers</span>
+                    </div>
+                    <StackedBar cohorts={cohorts} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 14px", marginTop: 8 }}>
+                      {cohorts.map(c => (
+                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 2, background: segColors[c.id].main }} />
+                          <span style={{ fontSize: 10, color: T.textMuted }}>{c.label.split(" ")[0]} <strong style={{ color: T.text }}>{c.pct}%</strong></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cards grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {cohorts.map(c => (
+                      <CohortCard
+                        key={c.id} c={c}
+                        expanded={expanded === c.id}
+                        onToggle={() => setExpanded(expanded === c.id ? null : c.id)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {tab === "switching" && <SwitchingTab />}
+
+              {tab === "methodology" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {[
+                    { title: "Stage 1 ‚Äî Loyalty Segmentation (RFM)", color: T.purple, body: "Each buyer is scored on Recency, Frequency, and Monetary dimensions using quantile-based scoring (1‚Äì3 scale per dimension). FM composite scores determine segment assignment. Lapsed is defined as purchase 6‚Äì12 months ago with no purchase in the last 6 months. Non-Buyers are known category buyers with 0 brand/merchant purchases in the past 12 months." },
+                    { title: "Stage 2 ‚Äî N/L/R Lifecycle Classification", color: T.green, body: "Users are classified into three mutually exclusive groups: Retained (purchased in both Prior and Recent Windows), New to Brand (Recent Window only), and Lapsed (Prior Window only). These sum to 100% of the total buyer universe. The Lapsed definition aligns with the Lapsed & Lapsing cohort from Stage 1." },
+                    { title: "Stage 3 ‚Äî Switching Analysis (Lapsed only)", color: T.red, body: "Lapsed users are checked for competitor transactions in the Recent Window. Flags are non-exclusive ‚Äî a user can be counted toward multiple competitors. 'Left the Category' requires all competitor flags = 0. Uses weighted user counts (bp.tranche = 'a') for census-balanced population estimates." },
+                    { title: "Recency Modernization ‚Äî Planned Enhancement", color: T.amber, body: "Future: replace static thresholds with Category-Specific Inter-Purchase Intervals (IPI) using Œº + 2œÉ of historical repurchase timing per category. Lapse threshold adapts to natural buying cycles (e.g., Vitamins: ~75 days vs. Electronics: ~1,800 days), reducing false churn signals in long-cycle categories." },
+                  ].map(s => (
+                    <div key={s.title} style={{
+                      padding: "14px 16px", borderRadius: 8,
+                      background: T.bg, border: `1px solid ${T.border}`,
+                      borderLeft: `3px solid ${s.color}`,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 6 }}>{s.title}</div>
+                      <p style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.6, margin: 0 }}>{s.body}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
